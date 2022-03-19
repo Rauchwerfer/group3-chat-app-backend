@@ -140,7 +140,7 @@ router.post('/sign_up', async (req, res) => {
 
     // Confirmation Link will be changed later with deploying on heroku
     try {            
-      const confirmationLink = `https://api-m1cr0chat.herokuapp.com/auth/confirmation/${newUser.id}/${confirmationToken}`
+      const confirmationLink = `https://api-group3-chat-app.herokuapp.com/auth/confirmation/${newUser.id}/${confirmationToken}`
       const isSended = sendMail(req.body.email, 'eng', confirmationLink)
       if (isSended) {      
         return res.json({success: `Welcome, ${req.body.username}! Confirm your account via link sent to your email.`}).status(200)
