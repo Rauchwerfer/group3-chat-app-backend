@@ -3,7 +3,7 @@ const router = express.Router()
 
 const User = require("../models/User")
 
-const { authenticateToken, authorizeClient} = require('./AuthMiddware') // Authentication and Authorization methods
+const { authenticateToken, authorizeClient} = require('../AuthMiddware') // Authentication and Authorization methods
 
 router.get('/', authenticateToken, async (req, res) => {
   try {
