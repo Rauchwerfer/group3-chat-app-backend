@@ -37,6 +37,21 @@ router.post('/set_username', authenticateToken, async (req, res) => {
   } 
 })
 
+router.delete('/delete_account', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
 
+    const result = await User.deleteOne({"_id": req.body.currentUserId})
+    console.log(result)
+    if (result.deletedCount == 1) {
+      return res.sendStatus(200)
+    } else {
+      return res.sendStatus(204)
+    }    
+  } catch(error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }   
+})
 
 module.exports = router
