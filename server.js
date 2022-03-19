@@ -8,7 +8,7 @@ const app = express()
 const cors = require("cors")
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL
+    origin: "*"
   })
 )
 //
