@@ -5,6 +5,8 @@ const User = require("../models/User")
 
 const { authenticateToken, authorizeClient} = require('../AuthMiddware') // Authentication and Authorization methods
 
+
+// User search
 router.get('/', authenticateToken, async (req, res) => {
   try {
     let query = User.find()
