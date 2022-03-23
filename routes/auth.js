@@ -11,8 +11,6 @@ const User = require("../models/User")
 
 /*
 Things to do:
- - Change Confirmation Link Origin
- - Resend email with confirmation link
 */
 
 // Login
@@ -26,7 +24,7 @@ router.post('/login', async (req, res) => {
       const userData = {
         id: user._id,        
       }
-      const accessToken = jwt.sign(userData, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '30min' })
+      const accessToken = jwt.sign(userData, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '30min' })  // Token is now valid for 30 min
       const filteredTokens = user.tokens.filter((_token) => {
         return jwt.verify(_token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
           if (decoded) return true
@@ -138,21 +136,15 @@ router.post('/sign_up', async (req, res) => {
     })
     const newUser = await user.save()
 
-    // Confirmation Link will be changed later with deploying on heroku
-    try {            
-      const confirmationLink = `https://api-group3-chat-app.herokuapp.com/auth/confirmation/${newUser.id}/${confirmationToken}`
-      const isSended = sendMail(req.body.email, 'eng', confirmationLink)
-      if (isSended) {      
-        return res.json({success: `Welcome, ${req.body.username}! Confirm your account via link sent to your email.`}).status(200)
-      } else {
-        userToDelete = await User.findById(newUser.id)
-        await userToDelete.remove()
-        return res.json({error: `Something wrong sending confirmation email. Check if given email is correct.`}).status(422)
-      }      
-    } catch(err) {
-      console.log(err)
+    const confirmationLink = `https://api-group3-chat-app.herokuapp.com/auth/confirmation/${newUser.id}/${confirmationToken}`
+    const isSended = sendMail(req.body.email, 'eng', confirmationLink)
+    if (isSended) {      
+      return res.json({success: `Welcome, ${req.body.username}! Confirm your account via link sent to your email.`}).status(200)
+    } else {
+      userToDelete = await User.findById(newUser.id)
+      await userToDelete.remove()
       return res.json({error: `Something wrong sending confirmation email. Check if given email is correct.`}).status(422)
-    }
+    }       
     
   } catch(err) {
     console.log(err)

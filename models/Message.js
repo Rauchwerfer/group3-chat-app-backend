@@ -9,15 +9,15 @@ const messageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: 'User',
-    index : true
+    index: true
   },
   recipient: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
     ref: 'User',
-    index : true
+    index: true
   },
-  checked :{
+  checked: {
     type: Boolean,
     default:  false
   }
