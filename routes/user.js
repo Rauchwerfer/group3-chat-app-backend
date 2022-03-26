@@ -1,10 +1,16 @@
+/* 
+  User account routes:
+  - edit (status, username)
+  - delete account
+*/
+
+
 const express = require('express')
 const router = express.Router()
 
 const User = require("../models/User")
-const jwt = require('jsonwebtoken')
 
-const { authenticateToken, authorizeClient} = require('../AuthMiddware')
+const { authenticateToken, authorizeClient } = require('../AuthMiddware')
 
 router.post('/set_status', authenticateToken, async (req, res) => {
   try {

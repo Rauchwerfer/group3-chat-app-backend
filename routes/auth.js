@@ -9,10 +9,6 @@ const sendMail = require('../mailer')
 
 const User = require("../models/User")
 
-/*
-Things to do:
-*/
-
 // Login
 router.post('/login', async (req, res) => {
   const user = await User.findOne({ 'email': req.body.email }).exec()
