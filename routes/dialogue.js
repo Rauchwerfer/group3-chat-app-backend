@@ -3,7 +3,7 @@ const router = express.Router()
 
 const Dialogue = require('../models/Dialogue')
 
-const { authenticateToken, authorizeClient} = require('../AuthMiddware')
+const { authenticateToken, authorizeClient} = require('../AuthMiddleware')
 
 router.get('/', authenticateToken, async (req, res) => {
   try {

@@ -21,7 +21,6 @@ const socketServer = (httpServer) => {
     })
   
     if (isAuthoized) {
-      console.log(`${socket.id} is AUTHORIZED`)
       next();
     } else {
       next(new Error(`${socket.id} is UNAUTHORIZED`))

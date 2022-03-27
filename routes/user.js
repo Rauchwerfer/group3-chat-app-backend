@@ -10,7 +10,7 @@ const router = express.Router()
 
 const User = require("../models/User")
 
-const { authenticateToken, authorizeClient } = require('../AuthMiddware')
+const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 
 router.post('/set_status', authenticateToken, async (req, res) => {
   try {

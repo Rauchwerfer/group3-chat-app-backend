@@ -3,7 +3,7 @@ const router = express.Router()
 
 const User = require("../models/User")
 
-const { authenticateToken, authorizeClient} = require('../AuthMiddware') // Authentication and Authorization methods
+const { authenticateToken } = require('../AuthMiddleware') // Authentication and Authorization methods
 
 
 // User search

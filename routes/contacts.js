@@ -3,11 +3,10 @@ const router = express.Router()
 
 const User = require("../models/User")
 
-const { authenticateToken, authorizeClient} = require('../AuthMiddware')
+const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 
 // Get contact list
 router.get('/', authenticateToken, async (req, res) => {
-  console.log(res.locals.userId)
   const user = await User.findById(res.locals.userId).populate('contacts', ['username'])
   return res.status(200).json(user.contacts)
 })
