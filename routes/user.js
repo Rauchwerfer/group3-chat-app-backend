@@ -17,8 +17,12 @@ router.post('/set_status', authenticateToken, async (req, res) => {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
 
     const user = await User.findById(req.body.currentUserId);
-    const savedUser = await user.updateOne({ $set: { status: req.body.newStatus } });
-    return res.status(200).json({ newStatus: savedUser.status })
+    const result = await user.updateOne({ $set: { status: req.body.newStatus } });
+    if (result.modifiedCount == 1) {
+      return res.status(200).json({ newStatus: req.body.newStatus })
+    } else {
+      return res.sendStatus(204)
+    }  
   } catch(error) {
     console.log(error)
     return res.sendStatus(500)
@@ -29,11 +33,10 @@ router.post('/set_username', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
 
-    const user = await User.findById(req.body.currentUserId);
-    const result = await user.updateOne({ $set: { username: req.body.newUsername } });
-    console.log(result)
+    const user = await User.findById(req.body.currentUserId)
+    const result = await user.updateOne({ $set: { username: req.body.newUsername } })
     if (result.modifiedCount == 1) {
-      return res.sendStatus(200)
+      return res.status(200).json({ newUsername: req.body.newUsername })
     } else {
       return res.sendStatus(204)
     }    

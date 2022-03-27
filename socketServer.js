@@ -54,7 +54,7 @@ const socketServer = (httpServer) => {
     // Request: dialogue(dialogue._id) recipient(user._id), sender(user._id), body ('String'), type ('String', ...)
     socket.on("send-private-message", async (request) => {    
       try {
-        console.log(`Dialogue: ${request.dialogue}, recipient: ${request.recipient}, body: ${request.body}, sender: ${request.sender}, type: ${request.type}`)      
+        //console.log(`Dialogue: ${request.dialogue}, recipient: ${request.recipient}, body: ${request.body}, sender: ${request.sender}, type: ${request.type}`)      
         const result = await Dialogue.findByIdAndUpdate(request.dialogue,
           { 
             $push: {
@@ -71,10 +71,19 @@ const socketServer = (httpServer) => {
         //console.log(result)
 
         const sender = await User.findById(request.sender).exec()
-        console.log(sender.username)
+
+        const response = {
+          senderId: request.sender,
+          recipientId: request.recipient,
+          body: request.body,
+          type: request.type,
+          messageCreatedAt: sentMessage.createdAt,
+          senderUsername: sender.username,
+          messageId: sentMessage._id
+        }
         
-        socket.to(request.recipient).emit("private-message", request.sender, request.recipient, request.body, request.type, sentMessage.createdAt, sender.username, sentMessage._id)
-        io.to(request.sender).emit("private-message-sended", request.sender, request.recipient, request.body, request.type, sentMessage.createdAt, sender.username, sentMessage._id)
+        socket.to(request.recipient).emit("private-message", response)
+        io.to(request.sender).emit("private-message-sended", response)
       } catch(err) {
         console.log(err)
       }

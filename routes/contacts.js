@@ -9,7 +9,7 @@ const { authenticateToken, authorizeClient} = require('../AuthMiddware')
 router.get('/', authenticateToken, async (req, res) => {
   console.log(res.locals.userId)
   const user = await User.findById(res.locals.userId).populate('contacts', ['username'])
-  return res.json(user.contacts)
+  return res.status(200).json(user.contacts)
 })
 
 // Add user to Contacts or delete if it is already in contacts
