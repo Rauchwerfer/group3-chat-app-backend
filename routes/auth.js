@@ -30,7 +30,7 @@ router.post('/login', async (req, res) => {
       filteredTokens.push(accessToken)
       user.tokens = filteredTokens
 
-      user.signInCount = user.signInCount + 1
+      user.signInCount = user.signInCount++
 
       const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
       user.lastSignInIp = user.currentSignInIp

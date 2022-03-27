@@ -78,8 +78,8 @@ const userSchema = new mongoose.Schema({
     default: ''
   },
   image: {
-    type: String,
-    default: '',
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'UserImage'    
   }
 }, { timestamps: true })
 
