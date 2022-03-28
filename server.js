@@ -58,4 +58,5 @@ app.get('*', (req, res) => {
   res.sendStatus(404);
 });
 
-httpServer.listen(process.env.PORT || 5000, ()=> console.log("Server started"));
+const PORT = process.env.PORT || 5000;
+httpServer.listen(PORT, ()=> console.log("Server started at port " + PORT));
