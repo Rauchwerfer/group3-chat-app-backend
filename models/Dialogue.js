@@ -22,6 +22,8 @@ const messageSchema = new mongoose.Schema({
   }
 }, {timestamps: true})
 
+const Message = mongoose.model('Message', messageSchema)
+
 const dialogueSchema = new mongoose.Schema({
   participants: [
     {
@@ -33,4 +35,9 @@ const dialogueSchema = new mongoose.Schema({
   messages: [messageSchema]
 }, {timestamps: true})
 
-module.exports = mongoose.model('Dialogue', dialogueSchema)
+const Dialogue = mongoose.model('Dialogue', dialogueSchema)
+
+module.exports = {
+  Dialogue: Dialogue,
+  Message: Message
+}
