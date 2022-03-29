@@ -49,6 +49,8 @@ const contactsRouter = require('./routes/contacts')
 app.use('/contacts', contactsRouter)
 const userRouter = require('./routes/user')
 app.use('/user', userRouter)
+const groupRouter = require('./routes/group')
+app.use('/group', groupRouter)
 
 app.get('/', (req, res) => {
   res.status(200).send({ "Success": "Server is running!" })
