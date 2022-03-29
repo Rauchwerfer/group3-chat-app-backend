@@ -63,4 +63,22 @@ router.delete('/delete_account', authenticateToken, async (req, res) => {
   }   
 })
 
+// Add user connections to groups so we can get the group information (MAY BE CHANGED LATER SINCE I DONT THINK ITS A GOOD IMPLEMETION?)
+router.post('/add_group', authenticateToken, async (req, res) => {
+  try {
+      if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+      const user = await User.findById(req.body.currentUserId);
+      if (!user.groups.includes(req.body.group)) {
+        await user.updateOne({ $push: { groups: req.body.group } });
+        res.status(201).json({ success: "Connection to group added" });
+    } else {
+        await user.updateOne({ $pull: { groups: req.body.group } });
+        res.status(200).json({ success: "Connection to group deleted" });
+    }
+  } catch (error) {
+      console.log(error)
+      return res.sendStatus(500)
+  }
+})
+
 module.exports = router

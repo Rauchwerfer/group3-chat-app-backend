@@ -70,7 +70,13 @@ const userSchema = new mongoose.Schema({
   contacts: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'    
+      ref: 'User'
+    }
+  ],
+  groups: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Group'
     }
   ],
   status: {
@@ -79,7 +85,7 @@ const userSchema = new mongoose.Schema({
   },
   image: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'UserImage'    
+    ref: 'UserImage'
   }
 }, { timestamps: true })
 
