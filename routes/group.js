@@ -50,7 +50,7 @@ router.post('/send_message', authenticateToken, async (req, res) => {
 // Add users to group only for the moderator? Maybe everyone should be able to add? (right now everyone can add)
 router.post('/add_to_group', authenticateToken, async (req, res) => {
     try {
-        if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+        if (!authorizeClient(req.body.companionUserId, req.headers['authorization'])) return res.sendStatus(401)
         const group = await Group.findById(req.body.groupId);
         if (!group.participants.includes(req.body.companionUserId)) {
             await group.updateOne({ $push: { participants: req.body.companionUserId } });
