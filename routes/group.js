@@ -5,6 +5,7 @@ const Group = require('../models/Group')
 
 const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 const { default: mongoose } = require('mongoose')
+const res = require('express/lib/response')
 
 // Get messages sent to a group
 // (WE NEED TO ADD A CHECK WHICH CHECKS IF THE USER IS IN THE GROUP OR NOT!)
@@ -86,6 +87,7 @@ router.post('/create_group', authenticateToken, async (req, res) => {
                     creator: result.creator
                 }
             })
+            addUserToGroup(req.body.currentUserId, result._id)
         })
         .catch((err) => {
             console.log(err);
@@ -94,6 +96,23 @@ router.post('/create_group', authenticateToken, async (req, res) => {
             });
         });
 })
+
+async function addUserToGroup(userId, groupId) {
+  try {
+    const result = await User.findOneAndUpdate(
+      { 
+        _id: userId 
+      }, 
+      { 
+        $push: { 
+          groups: groupId  
+        } 
+    })
+    console.log(result)
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 
 

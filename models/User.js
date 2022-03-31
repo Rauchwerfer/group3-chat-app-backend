@@ -79,6 +79,12 @@ const userSchema = new mongoose.Schema({
       ref: 'Group'
     }
   ],
+  dialogues: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Dialogue'
+    }
+  ],
   status: {
     type: String,
     default: ''
