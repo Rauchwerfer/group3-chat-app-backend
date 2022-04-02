@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const userImageSchema = new mongoose.Schema({
+const imageSchema = new mongoose.Schema({
   imageBuffer: {
     type: Buffer,
     required: true
@@ -11,4 +11,4 @@ const userImageSchema = new mongoose.Schema({
   }
 }, {timestamps: true})
 
-module.exports = mongoose.model('UserImage', userImageSchema)
+module.exports = mongoose.model('Image', imageSchema)

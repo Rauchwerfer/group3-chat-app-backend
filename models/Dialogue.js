@@ -1,4 +1,5 @@
-const mongoose = require('mongoose')
+const mongoose = require('mongoose');
+const User = require('./User');
 
 const messageSchema = new mongoose.Schema({
   body: {
@@ -22,8 +23,6 @@ const messageSchema = new mongoose.Schema({
   }
 }, {timestamps: true})
 
-const Message = mongoose.model('Message', messageSchema)
-
 const dialogueSchema = new mongoose.Schema({
   participants: [
     {
@@ -35,9 +34,20 @@ const dialogueSchema = new mongoose.Schema({
   messages: [messageSchema]
 }, {timestamps: true})
 
-const Dialogue = mongoose.model('Dialogue', dialogueSchema)
+dialogueSchema.pre('save', async function(next) {
+  console.log('participants')
+  console.log(this.participants)
+  this.participants.forEach(async (participant) => {
+    await User.findByIdAndUpdate(participant, { $push: { dialogues: this._id }})
+  });
+  next();
+});
 
-module.exports = {
-  Dialogue: Dialogue,
-  Message: Message
-}
+dialogueSchema.pre('remove', async function(next) {
+  this.participants.forEach(async (participant) => {
+    await User.findByIdAndUpdate(participant, { $pull: { dialogues: { dialogueRef: this._id} }})
+  });
+  next();
+});
+
+module.exports =  mongoose.model('Dialogue', dialogueSchema)

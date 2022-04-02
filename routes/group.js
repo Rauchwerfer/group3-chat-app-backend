@@ -107,7 +107,8 @@ async function addUserToGroup(userId, groupId) {
         $push: { 
           groups: groupId  
         } 
-    })
+      }
+    )
     console.log(result)
   } catch (error) {
     console.log(error)

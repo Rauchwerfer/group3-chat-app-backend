@@ -1,5 +1,23 @@
 const mongoose = require('mongoose')
 
+const messageSchema = new mongoose.Schema({
+  body: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    required: true,
+    default: 'String'
+  },
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'User',
+    index: true
+  }
+}, {timestamps: true})
+
 const groupSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -8,9 +26,8 @@ const groupSchema = new mongoose.Schema({
     index: true
   },
   image: {
-    type: String,
-    required: false,
-    default: null
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Image'
   },
   participants: [
     {
@@ -31,14 +48,7 @@ const groupSchema = new mongoose.Schema({
       index: true
     }
   ],
-  messages: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      required: true,
-      ref: 'Message',
-      index: true
-    }
-  ]
+  messages: [messageSchema]
 }, { timestamps: true })
 
 module.exports = mongoose.model('Group', groupSchema)

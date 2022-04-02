@@ -69,14 +69,18 @@ const userSchema = new mongoose.Schema({
   },
   contacts: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      contactRef: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }
     }
   ],
   groups: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Group'
+      groupRef: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Group'
+      }
     }
   ],
   dialogues: [
@@ -91,7 +95,7 @@ const userSchema = new mongoose.Schema({
   },
   image: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'UserImage'
+    ref: 'Image'
   }
 }, { timestamps: true })
 
