@@ -15,6 +15,7 @@ const { sendConfirmationMail } = require('../mailer')
 const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 const bcrypt = require('bcrypt')
 const randomstring = require('randomstring')
+const Image = require('../models/Image')
 
 router.post('/set_status', authenticateToken, async (req, res) => {
   try {
@@ -98,6 +99,49 @@ router.post('/set_password', authenticateToken, async (req, res) => {
     user.password = hashedPassword
     const savedUser = await user.save()
     return res.status(200).json({ success: "Password changed."})
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
+router.post('/set_image', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+
+    const checkIfImageExists = await User.findById(req.body.currentUserId, 'image').populate('image').exec()
+    if (checkIfImageExists.image != null) {
+      const image = await Image.findById(checkIfImageExists.image._id).exec()
+      if (image != null) {
+        image.imageType = req.body.imageType,
+        image.imageBuffer = req.body.imageBuffer
+        const savedImage = await image.save()
+        return res.status(200).json({ success: "Image changed."})
+      } else {
+
+      }
+    } else {
+      const image = new Image({
+        imageType: req.body.imageType,
+        imageBuffer: req.body.imageBuffer
+      })
+      const savedImage = await image.save()
+      const result = await User.findByIdAndUpdate(req.body.currentUserId, {
+        $set: {
+          image: savedImage._id
+        }
+      }, {
+        returnDocument: 'after'
+      }).exec()
+  
+      if (result && result.image) {
+        return res.status(200).json({ success: "Image changed."})
+      } else {
+        return res.sendStatus(500)
+      }
+    }
+
+
   } catch (error) {
     console.log(error)
     return res.sendStatus(500)

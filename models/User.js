@@ -91,7 +91,8 @@ const userSchema = new mongoose.Schema({
   },
   image: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Image'
+    ref: 'Image',
+    default: null
   }
 }, { timestamps: true })
 

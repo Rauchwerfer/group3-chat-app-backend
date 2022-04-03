@@ -55,7 +55,6 @@ router.post('/login', async (req, res) => {
   }
 })
 
-// Check if User's token still valid (for now used only for debug)
 router.get('/verify_token', (req, res) => {
   try {
     const authHeader = req.headers['authorization']
@@ -67,7 +66,7 @@ router.get('/verify_token', (req, res) => {
       //res.json(decoded)
       const user = await User.findOne({ '_id': decoded.id }).exec()
       if (user == null) {
-        return res.sendStatus(422)
+        return res.sendStatus(401)
       }
       res.status(200).json({ 
         user: user

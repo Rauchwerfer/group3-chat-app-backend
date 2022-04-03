@@ -21,4 +21,19 @@ router.get('/', authenticateToken, async (req, res) => {
   }  
 })
 
+//later for image fetching will be separate routes
+router.get('/get_user/:userId', authenticateToken, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId, '_id username status image').populate('image').exec()
+    if (user != null) {
+      return res.status(200).json(user)
+    } else {
+      return res.sendStatus(404)
+    }
+  } catch(error) {
+    console.log(error)
+    return res.sendStatus(500)
+  } 
+})
+
 module.exports = router
