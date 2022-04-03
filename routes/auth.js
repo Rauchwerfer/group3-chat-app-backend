@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const randomstring = require("randomstring")
 
-const sendMail = require('../mailer')
+const { sendMail } = require('../mailer')
 
 const User = require("../models/User")
 
@@ -30,7 +30,7 @@ router.post('/login', async (req, res) => {
       filteredTokens.push(accessToken)
       user.tokens = filteredTokens
 
-      user.signInCount = user.signInCount++
+      user.signInCount = user.signInCount + 1
 
       const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
       user.lastSignInIp = user.currentSignInIp
@@ -41,7 +41,7 @@ router.post('/login', async (req, res) => {
 
       const savedUser = await user.save()
       
-      res.status(200).json({ 
+      return res.status(200).json({ 
         accessToken: accessToken,
         user: savedUser
       })
@@ -161,12 +161,13 @@ router.get('/confirmation/:id/:confirmationToken', async (req, res) => {
     user.email = user.unconfirmedEmail
     user.unconfirmedEmail = ''
     user.confirmationToken = ''
-    user.confirmedAt = Date.now()
-    user.confirmed = true
+    if (!user.confirmed) {
+      user.confirmedAt = Date.now()
+      user.confirmed = true
+    }
 
     const confirmedUser = await user.save()
-    return res.status(200).json({success: `Email address ${user.email} of ${user.username} confirmed.`})
-    //return res.redirect(process.env.FRONTEND_URL + '/login?confirmed=true')
+    return res.status(200).json({success: `Email address ${confirmedUser.email} of ${confirmedUser.username} confirmed.`})
   } catch(err) {
     return res.sendStatus(500)
   }

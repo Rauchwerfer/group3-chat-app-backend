@@ -10,7 +10,11 @@ const router = express.Router()
 
 const User = require("../models/User")
 
+const { sendConfirmationMail } = require('../mailer')
+
 const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
+const bcrypt = require('bcrypt')
+const randomstring = require('randomstring')
 
 router.post('/set_status', authenticateToken, async (req, res) => {
   try {
@@ -46,6 +50,61 @@ router.post('/set_username', authenticateToken, async (req, res) => {
   }
 })
 
+router.post('/set_email', authenticateToken, async (req, res) =>{
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+
+
+    const confirmationToken = randomstring.generate({
+      length: 30,
+      charset: 'alphanumeric'
+    })
+    const confirmationLink = `https://api-group3-chat-app.herokuapp.com/auth/confirmation/${req.body.currentUserId}/${confirmationToken}`
+
+    const result = await User.findByIdAndUpdate(req.body.currentUserId,{ 
+      $set: { 
+        unconfirmedEmail: req.body.newEmail,
+        confirmationToken: confirmationToken,
+        confirmationSentAt: Date.now()
+      } 
+    }, {
+      returnDocument: 'after'
+    }).exec()
+    console.log(result)
+    const isSended = sendConfirmationMail(req.body.newEmail, 'eng', confirmationLink)
+    if (isSended) {
+      return res.status(200).json({success: `Confirm your account via link sent to your email.`})
+    } else {
+      return res.sendStatus(204)
+    }      
+
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
+router.post('/set_password', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+
+    const user = await User.findById(req.body.currentUserId)
+    
+    if (!await bcrypt.compare(req.body.currentPassword, user.password)) {
+      return res.status(401).json({ error: "Invalid current password!" })
+    }
+
+    const hashedPassword = await bcrypt.hash(req.body.newPassword, 10)
+    user.password = hashedPassword
+    const savedUser = await user.save()
+    return res.status(200).json({ success: "Password changed."})
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
+// Need to be changed later
 router.delete('/delete_account', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)

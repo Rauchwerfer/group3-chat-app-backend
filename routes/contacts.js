@@ -7,7 +7,7 @@ const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 
 // Get contact list
 router.get('/', authenticateToken, async (req, res) => {
-  const user = await User.findById(res.locals.userId).populate('contacts.contactRef', ['_id', 'username'])
+  const user = await User.findById(res.locals.userId).populate('contacts', ['_id', 'username'])
   return res.status(200).json(user.contacts)
 })
 
@@ -17,10 +17,10 @@ router.post('/add_contact', authenticateToken, async (req, res) => {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     const user = await User.findById(req.body.currentUserId);
     if (!user.contacts.includes(req.body.companionUserId)) {
-      await user.updateOne({ $push: { contacts: { contactRef: req.body.companionUserId} } });
+      await user.updateOne({ $push: { contacts: req.body.companionUserId } });
       res.status(201).json({ success: "Contact was added"});
     } else {
-      await user.updateOne({ $pull: { contacts: { contactRef: req.body.companionUserId} } });
+      await user.updateOne({ $pull: { contacts: req.body.companionUserId } });
       res.status(200).json({ success: "Contact was deleted"});
     }
   } catch(error) {
