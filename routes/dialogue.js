@@ -23,8 +23,12 @@ router.get('/', authenticateToken, async (req, res) => {
       } 
     })   
     .exec()
+    result.dialogues.forEach(dialogue => {
+      if (dialogue.messages.length > 0) {
+        dialogue.messages = dialogue.messages[dialogue.messages.length - 1]
+      }
+    });
 
-    console.log(result)  //.dialogues[0].participants
     return res.status(200).json(result)
   } catch (error) {
     console.log(error)
@@ -42,10 +46,11 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
       .populate('messages.sender', ['username'/* , 'email' */])
       .populate('participants', ['username'])
       .exec()
-      
+
       if (dialogue != null) {
         return res.status(200).json({
           dialogueId: dialogue._id,
+          participants: dialogue.participants,
           messages: dialogue.messages
         })
       } else {
@@ -68,6 +73,7 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
         console.log('find')
         return res.status(200).json({
           dialogueId: checkIfDialogueExists._id,
+          participants: checkIfDialogueExists.participants,
           messages: checkIfDialogueExists.messages
         })
       } else {
