@@ -120,6 +120,22 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
   }
 })
 
+router.delete('/delete_dialogue', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+    const dialogueToDelete = await Dialogue.findById(req.body.dialogueId).exec()
+    const result = await dialogueToDelete.remove()
+    if (result != null) {
+      return res.status(200).json(result)
+    } else {
+      return res.sendStatus(304)
+    }      
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
 
 // Create a message used for group messaging as well.
 router.post('/create_message', authenticateToken, async (req, res) => {

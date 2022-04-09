@@ -35,17 +35,18 @@ const dialogueSchema = new mongoose.Schema({
 }, {timestamps: true})
 
 dialogueSchema.pre('save', async function(next) {
-  console.log('participants')
-  console.log(this.participants)
+  console.log(this)
   this.participants.forEach(async (participant) => {
-    await User.findByIdAndUpdate(participant, { $push: { dialogues: this._id }})
+    await User.findByIdAndUpdate(participant, { $push: { dialogues: this._id }}).exec()
   });
   next();
 });
 
 dialogueSchema.pre('remove', async function(next) {
+  console.log(this)
+  console.log(this.participants)
   this.participants.forEach(async (participant) => {
-    await User.findByIdAndUpdate(participant, { $pull: { dialogues: { dialogueRef: this._id} }})
+    await User.findByIdAndUpdate(participant, { $pull: { dialogues: this._id }}).exec()
   });
   next();
 });
