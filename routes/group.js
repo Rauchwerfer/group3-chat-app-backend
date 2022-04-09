@@ -3,9 +3,33 @@ const router = express.Router()
 
 const { Group, Message } = require('../models/Group')
 
+const User = require('../models/User')
+
 const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 const { default: mongoose } = require('mongoose')
 const res = require('express/lib/response')
+
+router.get('/get_group_data/:groupId', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+    Group.findOne({ _id: req.params.groupId })
+      .select('createdAt creator moderators participants title updatedAt')
+      .populate('participants moderators creator', '_id username status image')
+      .exec()
+      .then(result => {
+        res.status(200).json(result)
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(500).json({
+          error: err,
+        });
+      });
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
 
 // Get messages sent to a group
 // (WE NEED TO ADD A CHECK WHICH CHECKS IF THE USER IS IN THE GROUP OR NOT!)
@@ -85,13 +109,15 @@ async function addMessageToGroup(message, params) {
 // Add users to group only for the moderator? Maybe everyone should be able to add? (right now everyone can add)
 router.post('/add_to_group', authenticateToken, async (req, res) => {
   try {
-    if (!authorizeClient(req.body.companionUserId, req.headers['authorization'])) return res.sendStatus(401)
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     const group = await Group.findById(req.body.groupId);
     if (!group.participants.includes(req.body.companionUserId)) {
       await group.updateOne({ $push: { participants: req.body.companionUserId } });
+      await addUserToGroup(req.body.companionUserId, req.body.groupId);
       res.status(201).json({ success: "Participant was added" });
     } else {
       await group.updateOne({ $pull: { participants: req.body.companionUserId } });
+      await removeUserFromGroup(req.body.companionUserId, req.body.groupId);
       res.status(200).json({ success: "Participant was deleted" });
     }
   } catch (error) {
@@ -111,6 +137,7 @@ router.post('/create_group', authenticateToken, async (req, res) => {
     creator: req.body.currentUserId,
     moderators: req.body.moderators,
   });
+
   group
     .save()
     .then((result) => {
@@ -122,7 +149,8 @@ router.post('/create_group', authenticateToken, async (req, res) => {
           creator: result.creator
         }
       })
-      addUserToGroup(req.body.currentUserId, result._id)
+      // This goes through all the participants and adds them to the group on the user side as well.
+      req.body.participants.map(user => addUserToGroup(user, result._id))
     })
     .catch((err) => {
       console.log(err);
@@ -145,6 +173,26 @@ async function addUserToGroup(userId, groupId) {
       }
     )
     console.log(result)
+  } catch (error) {
+    console.log(error)
+  }
+}
+
+async function removeUserFromGroup(userId, groupId) {
+  try {
+    console.log(userId)
+    console.log(groupId)
+    const result = await User.findOneAndUpdate(
+      {
+        _id: userId
+      },
+      {
+        $pull: {
+          groups: groupId
+        }
+      }
+    )
+   // console.log(result)
   } catch (error) {
     console.log(error)
   }
