@@ -54,9 +54,22 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
           messages: dialogue.messages
         })
       } else {
-        const newDialogue = await createDialogue(req.query.companionUserId, req.query.currentUserId)
-        if (newDialogue != null) {
-          return res.status(200).json(newDialogue)
+        //
+        //const newDialogue = await createDialogue(req.query.companionUserId, req.query.currentUserId)
+        const newDialogue = new Dialogue()
+        newDialogue.participants.push(req.query.companionUserId)
+        newDialogue.participants.push(req.query.currentUserId)
+        const savedDialogue = await newDialogue.save()
+        const dialogue = await Dialogue.findById(savedDialogue._id)
+        .populate('messages.sender', ['username'/* , 'email' */])
+        .populate('participants', ['username'])
+        //
+        if (dialogue != null) {
+          return res.status(200).json({
+            dialogueId: dialogue._id,
+            participants: dialogue.participants,
+            messages: dialogue.messages
+          })
         } else {
           return res.sendStatus(500)
         }
@@ -78,9 +91,22 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
         })
       } else {
         console.log('create new')
-        const newDialogue = await createDialogue(req.query.companionUserId, req.query.currentUserId)
-        if (newDialogue != null) {
-          return res.status(200).json(newDialogue)
+        //
+        //const newDialogue = await createDialogue(req.query.companionUserId, req.query.currentUserId)
+        const newDialogue = new Dialogue()
+        newDialogue.participants.push(req.query.companionUserId)
+        newDialogue.participants.push(req.query.currentUserId)
+        const savedDialogue = await newDialogue.save()
+        const dialogue = await Dialogue.findById(savedDialogue._id)
+        .populate('messages.sender', ['username'/* , 'email' */])
+        .populate('participants', ['username'])
+        //  
+        if (dialogue != null) {
+          return res.status(200).json({
+            dialogueId: dialogue._id,
+            participants: dialogue.participants,
+            messages: dialogue.messages
+          })
         } else {
           return res.sendStatus(500)
         }
@@ -93,24 +119,6 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
     return res.sendStatus(500)
   }
 })
-
-async function createDialogue(userId1, userId2) {
-  try {
-    const newDialogue = new Dialogue()
-    newDialogue.participants.push(userId1)
-    newDialogue.participants.push(userId2)
-    const savedDialogue = await newDialogue.save()
-    return {
-      dialogueId: savedDialogue._id,
-      messages: []
-    }
-  } catch(error) {
-    console.log(error)
-    return null
-  }
-}
-
-
 
 
 // Create a message used for group messaging as well.
