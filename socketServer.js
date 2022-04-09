@@ -48,7 +48,6 @@ const socketServer = (httpServer) => {
     let socketContacts = [...socketUserContacts.contacts, ...socketUserContacts.groups]
     // This .map function turns new objectids to strings so we can use them as room names!
     const stringContacts = socketContacts.map(x => x.toHexString());
-    stringContacts.push(socketUserId)
     socket.join(stringContacts)
 
     // Needs for testing
@@ -90,8 +89,8 @@ const socketServer = (httpServer) => {
           messageId: sentMessage._id
         }
 
-        socket.to(request.recipient).emit("private-message", response)
-        io.to(request.sender).emit("private-message-sended", response)
+        socket.to(request.sender).emit("private-message", response)
+        io.to(request.recipient).emit("private-message-sended", response)
       } catch (err) {
         console.log(err)
       }
