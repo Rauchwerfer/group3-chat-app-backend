@@ -40,7 +40,6 @@ router.post('/send_message', authenticateToken, async (req, res) => {
 
 // Create a message used for group messaging as well.
 router.post('/create_message/:groupId', authenticateToken, async (req, res) => {
-  console.log("test")
   if (!authorizeClient(req.body.sender, req.headers['authorization'])) return res.sendStatus(401)
   const message = new Message({
     _id: mongoose.Types.ObjectId(),
