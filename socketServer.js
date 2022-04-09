@@ -80,13 +80,16 @@ const socketServer = (httpServer) => {
         const sender = await User.findById(request.sender).exec()
 
         const response = {
-          senderId: request.sender,
-          recipientId: request.recipient,
-          body: request.body,
-          type: request.type,
-          messageCreatedAt: sentMessage.createdAt,
-          senderUsername: sender.username,
-          messageId: sentMessage._id
+          id: request.dialogueId,
+          response: {
+            senderId: request.sender,
+            recipientId: request.recipient,
+            body: request.body,
+            type: request.type,
+            messageCreatedAt: sentMessage.createdAt,
+            senderUsername: sender.username,
+            messageId: sentMessage._id
+          }
         }
 
         socket.to(request.sender).emit("private-message", response)
@@ -113,7 +116,7 @@ const socketServer = (httpServer) => {
           }
         }
 
-        socket.to(request.sender).emit("private-group-message", response)
+        socket.to(request.recipient).emit("private-group-message", response)
         io.to(request.group).emit('private-group-message-sended', response)
       } catch (err) {
         console.log(err)
