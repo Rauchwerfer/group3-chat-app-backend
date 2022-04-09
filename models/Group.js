@@ -16,7 +16,9 @@ const messageSchema = new mongoose.Schema({
     ref: 'User',
     index: true
   }
-}, {timestamps: true})
+}, { timestamps: true })
+
+const Message = mongoose.model('Message', messageSchema)
 
 const groupSchema = new mongoose.Schema({
   title: {
@@ -48,7 +50,18 @@ const groupSchema = new mongoose.Schema({
       index: true
     }
   ],
-  messages: [messageSchema]
+  messages: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Message',
+      index: true
+    }
+  ]
 }, { timestamps: true })
 
-module.exports = mongoose.model('Group', groupSchema)
+const Group = mongoose.model('Group', groupSchema)
+
+module.exports = {
+  Group: Group,
+  Message: Message
+}
