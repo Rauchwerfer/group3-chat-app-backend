@@ -92,7 +92,7 @@ const socketServer = (httpServer) => {
           }
         }
 
-        socket.to(request.sender).emit("private-message", response)
+        //socket.to(request.sender).emit("private-message", response)
         io.to(request.recipient).emit("private-message-sended", response)
       } catch (err) {
         console.log(err)
