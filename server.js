@@ -36,7 +36,7 @@ db.once('open', () => console.log('Connected to Mongoose'))
 // End DB Init
 
 // App routing implement
-app.use(express.json())
+app.use(express.json({ limit: "10mb"}))
 
 // Routers
 const authRouter = require('./routes/auth')
