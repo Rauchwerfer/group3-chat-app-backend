@@ -109,16 +109,16 @@ router.post('/set_image', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
 
-    const checkIfImageExists = await User.findById(req.body.currentUserId, 'image').populate('image').exec()
+    const checkIfImageExists = await User.findById(req.body.currentUserId, 'image').exec()
     if (checkIfImageExists.image != null) {
-      const image = await Image.findById(checkIfImageExists.image._id).exec()
+      const image = await Image.findById(checkIfImageExists.image).exec()
       if (image != null) {
         image.imageType = req.body.imageType,
         image.imageBuffer = req.body.imageBuffer
         const savedImage = await image.save()
         return res.status(200).json({ success: "Image changed."})
       } else {
-
+        return res.sendStatus(304)
       }
     } else {
       const image = new Image({
@@ -142,6 +142,24 @@ router.post('/set_image', authenticateToken, async (req, res) => {
     }
 
 
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
+router.delete('/delete_image', authenticateToken, async (req, res) => {
+  try {
+    console.log(res.locals.userId)
+
+    const checkIfImageExists = await User.findById(res.locals.userId, 'image').exec()
+    if (checkIfImageExists.image == null) return res.sendStatus(304)
+
+    const imageToDelete = await Image.findById(checkIfImageExists.image).exec()
+
+    const result = await imageToDelete.remove()
+
+    return res.status(200).json({ success: "Image Deleted!"})
   } catch (error) {
     console.log(error)
     return res.sendStatus(500)
