@@ -7,14 +7,15 @@ const User = require('../models/User')
 
 const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 const { default: mongoose } = require('mongoose')
-const res = require('express/lib/response')
+const Image = require('../models/Image')
 
 router.get('/get_group_data/:groupId', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     Group.findOne({ _id: req.params.groupId })
-      .select('createdAt creator moderators participants title updatedAt')
+      .select('createdAt creator moderators participants title updatedAt image')
       .populate('participants moderators creator', '_id username status image')
+      .populate('image')
       .exec()
       .then(result => {
         res.status(200).json(result)
@@ -141,6 +142,11 @@ router.post('/create_group', authenticateToken, async (req, res) => {
   group
     .save()
     .then((result) => {
+      // This goes through all the participants and adds them to the group on the user side as well.
+      req.body.participants.map(user => addUserToGroup(user, result._id))
+      if (req.body.image !== null) {
+        addImageToGroup(req, result._id);
+      }
       res.status(200).json({
         message: "Created group successfully",
         createdGroup: {
@@ -149,8 +155,6 @@ router.post('/create_group', authenticateToken, async (req, res) => {
           creator: result.creator
         }
       })
-      // This goes through all the participants and adds them to the group on the user side as well.
-      req.body.participants.map(user => addUserToGroup(user, result._id))
     })
     .catch((err) => {
       console.log(err);
@@ -159,6 +163,60 @@ router.post('/create_group', authenticateToken, async (req, res) => {
       });
     });
 })
+
+router.post('/set_group_image', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+
+    const checkIfImageExists = await Group.findById(req.body.currentUserId, 'image').exec()
+    console.log(checkIfImageExists)
+    if (checkIfImageExists != null) {
+      const image = await Image.findById(checkIfImageExists.image).exec()
+      if (image !== null) {
+        image.imageType = req.body.imageType,
+          image.imageBuffer = req.body.imageBuffer
+        const savedImage = await image.save()
+        return res.status(200).json({ success: "Image changed." })
+      } else {
+        return res.sendStatus(304)
+      }
+    } else {
+      const result = await addImageToGroup(req)
+
+      if (result && result.image) {
+        return res.status(200).json({ success: "Image changed." })
+      } else {
+        return res.sendStatus(500)
+      }
+    }
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
+async function addImageToGroup(req, _id) {
+  try {
+    const groupId = req.body.currentGroupId || _id;
+    const image = new Image({
+      imageType: req.body.imageType,
+      imageBuffer: req.body.imageBuffer
+    })
+    const savedImage = await image.save()
+    const result = await Group.findByIdAndUpdate(groupId, {
+      $set: {
+        image: savedImage._id
+      }
+    }, {
+      returnDocument: 'after'
+    }).exec()
+
+    return result;
+
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 async function addUserToGroup(userId, groupId) {
   try {
@@ -172,7 +230,6 @@ async function addUserToGroup(userId, groupId) {
         }
       }
     )
-    console.log(result)
   } catch (error) {
     console.log(error)
   }
@@ -192,7 +249,7 @@ async function removeUserFromGroup(userId, groupId) {
         }
       }
     )
-   // console.log(result)
+    // console.log(result)
   } catch (error) {
     console.log(error)
   }
