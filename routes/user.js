@@ -209,7 +209,7 @@ router.get('/get_user/:currentUserId', authenticateToken, async (req, res) => {
     User.findOne({ _id: req.params.currentUserId })
       .select('_id username email status image')
       .populate('contacts', '_id username status image')
-      .populate('groups', '_id title image')
+      .populate({ path: 'groups', select: '_id title image', populate: { path: 'image', select: 'imageBuffer imageType'}})
       .exec()
       .then(result => {
         res.status(200).json(result)
