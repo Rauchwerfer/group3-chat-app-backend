@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema({
     required: true,
     max: 128
   },
+  passwordResetToken: {
+    type: String,
+    default: ''
+  },
   confirmed: { // confirmable
     type: Boolean,
     default: false

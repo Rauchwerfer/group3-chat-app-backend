@@ -152,6 +152,7 @@ router.post('/sign_up', async (req, res) => {
 router.get('/confirmation/:id/:confirmationToken', async (req, res) => {
   try {
     const confirmationToken = req.params.confirmationToken
+    if (confirmationToken == '') return res.sendStatus(400)
     const userId = req.params.id
     const user = await User.findById(userId)
     if (user == null || user.confirmationToken != confirmationToken) {
