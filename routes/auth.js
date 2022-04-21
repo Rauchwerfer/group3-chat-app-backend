@@ -20,7 +20,7 @@ router.post('/login', async (req, res) => {
       const userData = {
         id: user._id,        
       }
-      const accessToken = jwt.sign(userData, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '30min' })  // Token is now valid for 30 min
+      const accessToken = jwt.sign(userData, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1000min' })  // Token is now valid for 30 min
       const filteredTokens = user.tokens.filter((_token) => {
         return jwt.verify(_token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
           if (decoded) return true
