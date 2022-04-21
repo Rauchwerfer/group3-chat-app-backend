@@ -33,10 +33,11 @@ router.get('/get_group_data/:groupId', authenticateToken, async (req, res) => {
 })
 
 // Get messages sent to a group
-// (WE NEED TO ADD A CHECK WHICH CHECKS IF THE USER IS IN THE GROUP OR NOT!)
 router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+    const isParticipant = await Group.findById(req.params.groupId).select('participants').exec();
+    if (!isParticipant.participants.includes(req.query.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
     Group.findOne({ _id: req.params.groupId })
       .populate('participants moderators creator', '_id username status image')
       .populate({ path: 'messages', populate: { path: 'sender', select: '_id username status image' } })
@@ -54,13 +55,6 @@ router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
     console.log(error)
     return res.sendStatus(500)
   }
-})
-
-// Send a message to the group.
-// Before this create a message on dialogue endpoint and then add it here via the messages id we will populate the messages when we get them 
-// (WE NEED TO ADD A CHECK WHICH CHECKS IF THE USER IS IN THE GROUP OR NOT!)
-router.post('/send_message', authenticateToken, async (req, res) => {
-
 })
 
 // Create a message used for group messaging as well.
@@ -107,17 +101,23 @@ async function addMessageToGroup(message, params) {
   }
 }
 
-// Add users to group only for the moderator? Maybe everyone should be able to add? (right now everyone can add)
+// Make sure you cannot delete the creator or other moderators
 router.post('/add_to_group', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+    const isModerator = await Group.findById(req.body.groupId).select('moderators creator').exec();
+    if (!isModerator.moderators.includes(req.body.currentUserId)) return res.status(401).json({ permissions: 'You do not have moderator status in this group.' })
+    // Checks if the user is the creator if so he can delete moderators as well
+    if (!(isModerator.creator.toHexString() === req.body.currentUserId)) {
+      if (isModerator.moderators.includes(req.body.companionUserId)) return res.status(401).json({ permissions: 'You do not have the permission to remove another moderator.' })
+    }
     const group = await Group.findById(req.body.groupId);
     if (!group.participants.includes(req.body.companionUserId)) {
       await group.updateOne({ $push: { participants: req.body.companionUserId } });
       await addUserToGroup(req.body.companionUserId, req.body.groupId);
       res.status(201).json({ success: "Participant was added" });
     } else {
-      await group.updateOne({ $pull: { participants: req.body.companionUserId } });
+      await group.updateOne({ $pull: { participants: req.body.companionUserId, moderators: req.body.companionUserId } });
       await removeUserFromGroup(req.body.companionUserId, req.body.groupId);
       res.status(200).json({ success: "Participant was deleted" });
     }
@@ -125,6 +125,34 @@ router.post('/add_to_group', authenticateToken, async (req, res) => {
     console.log(error)
     return res.sendStatus(500)
   }
+})
+
+router.post('/admin', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+    const isCreator = await Group.findById(req.body.groupId).select('creator').exec();
+    if (!(isCreator.creator.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You do not have creator status in this group.' })
+    if(isCreator.creator.toHexString() === req.body.companionUserId) return res.status(401).json({ permissions: 'You cannot remove creators permissions.'})
+    const group = await Group.findById(req.body.groupId);
+    if (!group.moderators.includes(req.body.companionUserId)) {
+      await group.updateOne({ $push: { moderators: req.body.companionUserId } });
+      await addUserToGroup(req.body.companionUserId, req.body.groupId);
+      res.status(201).json({ success: "Participant was given admin permissions" });
+    } else {
+      await group.updateOne({ $pull: { moderators: req.body.companionUserId } });
+      await removeUserFromGroup(req.body.companionUserId, req.body.groupId);
+      res.status(200).json({ success: "Participants admin permissions were removed" });
+    }
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
+router.post('/remove_from_group', authenticateToken, async (req, res) => {
+  if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+  const isModerator = await Group.findById(req.body.groupId).select('creator').exec();
+  if (!(isModerator.creator.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You do not have creator status in this group.' })
 })
 
 // Create a group with the creator as the creator and a moderator 
@@ -167,8 +195,9 @@ router.post('/create_group', authenticateToken, async (req, res) => {
 router.post('/set_group_image', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
-
-    const checkIfImageExists = await Group.findById(req.body.currentUserId, 'image').exec()
+    const isModerator = await Group.findById(req.body.currentGroupId).select('moderators').exec();
+    if (!isModerator.moderators.includes(req.body.currentUserId)) return res.status(401).json({ permissions: 'You do not have moderator status in this group.' })
+    const checkIfImageExists = await Group.findById(req.body.currentGroupId, 'image').exec()
     console.log(checkIfImageExists)
     if (checkIfImageExists != null) {
       const image = await Image.findById(checkIfImageExists.image).exec()
@@ -237,8 +266,6 @@ async function addUserToGroup(userId, groupId) {
 
 async function removeUserFromGroup(userId, groupId) {
   try {
-    console.log(userId)
-    console.log(groupId)
     const result = await User.findOneAndUpdate(
       {
         _id: userId
@@ -249,7 +276,6 @@ async function removeUserFromGroup(userId, groupId) {
         }
       }
     )
-    // console.log(result)
   } catch (error) {
     console.log(error)
   }
