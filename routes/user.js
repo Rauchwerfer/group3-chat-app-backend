@@ -158,6 +158,13 @@ router.delete('/delete_image', authenticateToken, async (req, res) => {
     const imageToDelete = await Image.findById(checkIfImageExists.image).exec()
 
     const result = await imageToDelete.remove()
+    const user = await User.findOneAndUpdate({ image: checkIfImageExists.image }, {
+      $set: {
+        image: null
+      }
+    }, {
+      returnDocument: 'after'
+    }).exec()
 
     return res.status(200).json({ success: "Image Deleted!"})
   } catch (error) {
