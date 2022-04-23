@@ -14,8 +14,9 @@ router.get('/get_group_data/:groupId', authenticateToken, async (req, res) => {
     if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     Group.findOne({ _id: req.params.groupId })
       .select('createdAt creator moderators participants title updatedAt image')
-      .populate('participants moderators creator', '_id username status image')
+      .populate('moderators creator', '_id username status image')
       .populate('image')
+      .populate({ path: 'participants', select: '_id username image status', populate: { path: 'image', select: 'imageBuffer imageType'}})
       .exec()
       .then(result => {
         res.status(200).json(result)
@@ -147,12 +148,6 @@ router.post('/admin', authenticateToken, async (req, res) => {
     console.log(error)
     return res.sendStatus(500)
   }
-})
-
-router.post('/remove_from_group', authenticateToken, async (req, res) => {
-  if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
-  const isModerator = await Group.findById(req.body.groupId).select('creator').exec();
-  if (!(isModerator.creator.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You do not have creator status in this group.' })
 })
 
 // Create a group with the creator as the creator and a moderator 
