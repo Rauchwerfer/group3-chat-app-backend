@@ -49,4 +49,28 @@ async function sendConfirmationMail(recipient, language = 'eng', confirmationLin
   })  
 }
 
-module.exports = { sendMail, sendConfirmationMail }
+async function sendPasswordResetMail(recipient, language = 'eng', passwordResetCode) {
+  let msg
+  if (language == 'eng') {
+    msg = {
+      to: recipient, // Change to your recipient
+      from: 'noreply.m1cr0chat@gmail.com', // Change to your verified sender
+      subject: 'Zapp password reset',
+      html: `<h2>Use the code below in the app to change your password:</h2><br><h1><strong>${passwordResetCode}</strong></h1>`,
+    }
+  }
+
+  await sgMail
+  .send(msg)
+  .then((response) => {
+    console.log(response)
+    if (response[0].statusCode == 202)
+    return true
+  })
+  .catch((error) => {
+    console.error(error)
+    return false
+  })  
+}
+
+module.exports = { sendMail, sendConfirmationMail, sendPasswordResetMail }
