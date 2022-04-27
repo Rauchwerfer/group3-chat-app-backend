@@ -5,12 +5,13 @@ const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
 const randomstring = require("randomstring")
 
-const { sendMail } = require('../mailer')
+const { sendMail, sendPasswordResetMail } = require('../mailer')
 
 const User = require("../models/User")
 
 // Login
 router.post('/login', async (req, res) => {
+  if (req.body.email == '') return res.status(401).json({"error": "Email can't be empty!"})
   const user = await User.findOne({ 'email': req.body.email }).exec()
   if (user == null) {
     return res.status(401).json({"error": "No user with that email"})
@@ -169,6 +170,33 @@ router.get('/confirmation/:id/:confirmationToken', async (req, res) => {
     const confirmedUser = await user.save()
     return res.status(200).json({success: `Email address ${confirmedUser.email} of ${confirmedUser.username} confirmed.`})
   } catch(err) {
+    return res.sendStatus(500)
+  }
+})
+
+router.post('/sendPasswordResetToken',  async (req, res) => {
+  try {
+    const resetCode = randomstring.generate({
+      length: 6,
+      charset: 'numeric'
+    })
+    const user = await User.findOneAndUpdate({ email: req.body.email},{
+      $set: {
+        passwordResetCode: resetCode
+      }
+    }, {
+      returnDocument: 'after'
+    }).exec()
+
+    const isSended = sendPasswordResetMail(req.body.email, 'eng', resetCode)
+    if (isSended) {      
+      return res.status(200).json({success: `Password reset code is sent to  ${req.body.email}`})
+    } else {
+      return res.status(422).json({error: `Something went wrong.`})
+    }
+    
+  } catch (error) {
+    console.log(error)
     return res.sendStatus(500)
   }
 })

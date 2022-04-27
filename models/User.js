@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
     required: true,
     max: 128
   },
-  passwordResetToken: {
+  passwordResetCode: {
     type: String,
     default: ''
   },

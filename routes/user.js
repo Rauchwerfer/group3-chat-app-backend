@@ -105,6 +105,25 @@ router.post('/set_password', authenticateToken, async (req, res) => {
   }
 })
 
+router.post('/reset_password', async (req, res) => {
+  try {
+    
+
+    const user = await User.findOne({ email: req.body.email})
+    
+    if (user.passwordResetCode != req.body.passwordResetCode) return res.status(401).json({ error: 'Invalid code!'})
+
+    const hashedPassword = await bcrypt.hash(req.body.newPassword, 10)
+    user.password = hashedPassword
+    user.passwordResetCode = ''
+    const savedUser = await user.save()
+    return res.status(200).json({ success: "Password changed."})
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
 router.post('/set_image', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
@@ -178,13 +197,33 @@ router.delete('/delete_account', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
 
-    const result = await User.deleteOne({ "_id": req.body.currentUserId })
+    /* const result = await User.deleteOne({ "_id": req.body.currentUserId })
     console.log(result)
     if (result.deletedCount == 1) {
       return res.sendStatus(200)
     } else {
       return res.sendStatus(204)
+    } */
+
+    const userToDelete = await User.findById(req.body.currentUserId).exec()
+
+    const imageToDelete = await Image.findById(userToDelete.image).exec()
+    if (imageToDelete != null) {
+      const result = await imageToDelete.remove()
     }
+
+    userToDelete.email = ''
+    userToDelete.username = 'Deleted'
+    userToDelete.image = null
+    userToDelete.unconfirmedEmail = ''
+    userToDelete.status = ''
+    userToDelete.password = ''
+    userToDelete.tokens = []
+    userToDelete.confirmationToken = ''
+    userToDelete.passwordResetToken = ''
+    const deletedUser = await userToDelete.save()
+    return res.status(200).json({ success: "Account successfully deleted!"})
+
   } catch (error) {
     console.log(error)
     return res.sendStatus(500)
