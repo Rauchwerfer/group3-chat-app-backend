@@ -102,17 +102,15 @@ const socketServer = (httpServer) => {
     socket.on("send-private-group-message", async (request) => {
       try {
         const sender = await User.findById(request.sender).select('image username _id status').exec()
-
         const response = {
           groupId: request.group,
           response: {
-            _id: request.sender,
+            _id: request.message._id,
             recipientId: request.recipient,
             body: request.message.body,
             type: request.message.type,
             createdAt: request.message.createdAt,
             sender: sender,
-            messageId: request.message._id
           }
         }
 
