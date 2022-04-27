@@ -27,6 +27,28 @@ const messageSchema = new mongoose.Schema({
 
 const Message = mongoose.model('Message', messageSchema)
 
+const lastVisitSchema = new mongoose.Schema({
+  group: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'Group',
+    index: true
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: 'User',
+    index: true
+  },
+  lastActiveAt: {
+    type: Date,
+    default: new Date(),
+    required: true
+  }
+});
+
+const LastVisit = mongoose.model('LastVisit', lastVisitSchema)
+
 const groupSchema = new mongoose.Schema({
   title: {
     type: String,
@@ -64,6 +86,13 @@ const groupSchema = new mongoose.Schema({
       ref: 'Message',
       index: true
     }
+  ],
+  lastVisited: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'LastVisit',
+      index: true
+    }
   ]
 }, { timestamps: true })
 
@@ -71,5 +100,6 @@ const Group = mongoose.model('Group', groupSchema)
 
 module.exports = {
   Group: Group,
-  Message: Message
+  Message: Message,
+  LastVisit: LastVisit
 }
