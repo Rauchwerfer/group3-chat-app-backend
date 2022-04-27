@@ -1,13 +1,14 @@
 const express = require('express')
 const router = express.Router()
 
-const { Group, Message } = require('../models/Group')
+const { Group, Message, LastVisit } = require('../models/Group')
 
 const User = require('../models/User')
 
 const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 const { default: mongoose } = require('mongoose')
 const Image = require('../models/Image')
+const res = require('express/lib/response')
 
 router.get('/get_group_data/:groupId', authenticateToken, async (req, res) => {
   try {
@@ -16,7 +17,7 @@ router.get('/get_group_data/:groupId', authenticateToken, async (req, res) => {
       .select('createdAt creator moderators participants title updatedAt image')
       .populate('moderators creator', '_id username status image')
       .populate('image')
-      .populate({ path: 'participants', select: '_id username image status', populate: { path: 'image', select: 'imageBuffer imageType'}})
+      .populate({ path: 'participants', select: '_id username image status', populate: { path: 'image', select: 'imageBuffer imageType' } })
       .exec()
       .then(result => {
         res.status(200).json(result)
@@ -38,10 +39,12 @@ router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     const isParticipant = await Group.findById(req.params.groupId).select('participants').exec();
-    if (!isParticipant.participants.includes(req.query.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
+    if (!isParticipant?.participants.includes(req.query.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
+    const visit = await LastVisit.findOne({ user: req.query.currentUserId }).exec()
     Group.findOne({ _id: req.params.groupId })
       .populate('participants moderators creator', '_id username status image')
-      .populate({ path: 'messages', populate: { path: 'sender', select: '_id username status image' } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender', select: '_id username status image' } })
+      .limit(1)
       .exec()
       .then(result => {
         res.status(200).json(result)
@@ -56,6 +59,71 @@ router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
     console.log(error)
     return res.sendStatus(500)
   }
+})
+
+router.get('/get_more_messages/:groupId', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+    const isParticipant = await Group.findById(req.params.groupId).select('participants').exec();
+    if (!isParticipant?.participants.includes(req.query.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
+    Group.findOne({ _id: req.params.groupId })
+      .select('messages')
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: req.query.skip, limit: 20 }, populate: { path: 'sender', select: '_id username status image' } })
+      .limit(1)
+      .exec()
+      .then(result => {
+        res.status(200).json(result)
+      })
+      .catch((err) => {
+        console.log(err);
+        res.status(500).json({
+          error: err,
+        });
+      });
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
+router.post('/visit', authenticateToken, async (req, res) => {
+  if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+  const isParticipant = await Group.findById(req.body.currentGroupId).select('participants').exec();
+  if (!isParticipant?.participants.includes(req.body.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
+  LastVisit.findOne({ user: req.body.currentUserId })
+    .exec()
+    .then((result) => {
+      if (result) {
+        LastVisit.findOneAndUpdate({ _id: result._id }, { lastActiveAt: new Date() })
+          .exec()
+          .then((result) => {
+            res.status(200).json({
+              message: "Last time active updated",
+              group: result._id,
+              user: req.body.currentUserId,
+              lastActiveAt: new Date()
+            })
+          })
+      } else {
+        const lastVisit = new LastVisit({
+          group: req.body.currentGroupId,
+          user: req.body.currentUserId,
+          lastActiveAt: new Date(),
+        })
+        lastVisit
+          .save()
+          .then((result) => {
+            res.status(201).json({
+              message: "Last time active object created",
+              result
+            })
+          })
+      }
+
+    }).catch((error) => {
+      console.log(error)
+      return res.sendStatus(500)
+    })
 })
 
 // Create a message used for group messaging as well.
@@ -133,7 +201,7 @@ router.post('/admin', authenticateToken, async (req, res) => {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     const isCreator = await Group.findById(req.body.groupId).select('creator').exec();
     if (!(isCreator.creator.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You do not have creator status in this group.' })
-    if(isCreator.creator.toHexString() === req.body.companionUserId) return res.status(401).json({ permissions: 'You cannot remove creators permissions.'})
+    if (isCreator.creator.toHexString() === req.body.companionUserId) return res.status(401).json({ permissions: 'You cannot remove creators permissions.' })
     const group = await Group.findById(req.body.groupId);
     if (!group.moderators.includes(req.body.companionUserId)) {
       await group.updateOne({ $push: { moderators: req.body.companionUserId } });
