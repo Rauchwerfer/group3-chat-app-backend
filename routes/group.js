@@ -43,7 +43,7 @@ router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
     const visit = await LastVisit.findOne({ user: req.query.currentUserId }).exec()
     Group.findOne({ _id: req.params.groupId })
       .populate('participants moderators creator', '_id username status image')
-      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender', select: '_id username status image' } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
       .limit(1)
       .exec()
       .then(result => {
@@ -68,7 +68,7 @@ router.get('/get_more_messages/:groupId', authenticateToken, async (req, res) =>
     if (!isParticipant?.participants.includes(req.query.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
     Group.findOne({ _id: req.params.groupId })
       .select('messages')
-      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: req.query.skip, limit: 20 }, populate: { path: 'sender', select: '_id username status image' } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: req.query.skip, limit: 20 }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
       .limit(1)
       .exec()
       .then(result => {
@@ -129,10 +129,20 @@ router.post('/visit', authenticateToken, async (req, res) => {
 // Create a message used for group messaging as well.
 router.post('/create_message/:groupId', authenticateToken, async (req, res) => {
   if (!authorizeClient(req.body.sender, req.headers['authorization'])) return res.sendStatus(401)
+  let imageIds = [];
+  for (let i = 0; i < req.body.images.length; i++) {
+    const image = new Image({
+      imageType: req.body.images[i].imageType,
+      imageBuffer: req.body.images[i].imageBuffer
+    })
+    const savedImage = await image.save()
+    imageIds.push(savedImage._id.toHexString())
+  }
   const message = new Message({
     _id: mongoose.Types.ObjectId(),
     body: req.body.body,
     type: req.body.type,
+    images: imageIds,
     sender: req.body.sender
   });
   message
@@ -343,7 +353,5 @@ async function removeUserFromGroup(userId, groupId) {
     console.log(error)
   }
 }
-
-
 
 module.exports = router
