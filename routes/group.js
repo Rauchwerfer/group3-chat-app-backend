@@ -44,6 +44,7 @@ router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
     Group.findOne({ _id: req.params.groupId })
       .populate('participants moderators creator', '_id username status image')
       .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'reply', select: '_id body' }, populate: { path: 'sender', select: '_id username' } })
       .limit(1)
       .exec()
       .then(result => {
@@ -69,6 +70,8 @@ router.get('/get_more_messages/:groupId', authenticateToken, async (req, res) =>
     Group.findOne({ _id: req.params.groupId })
       .select('messages')
       .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: req.query.skip, limit: 20 }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: req.query.skip, limit: 20 }, populate: { path: 'reply', select: '_id body', populate: { path: 'sender', select: '_id username' } } })
+
       .limit(1)
       .exec()
       .then(result => {
@@ -143,6 +146,7 @@ router.post('/create_message/:groupId', authenticateToken, async (req, res) => {
     body: req.body.body,
     type: req.body.type,
     images: imageIds,
+    reply: req.body.reply,
     sender: req.body.sender
   });
   message
@@ -263,6 +267,30 @@ router.post('/create_group', authenticateToken, async (req, res) => {
         error: err,
       });
     });
+})
+
+router.delete('/delete_message', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+    const isSender = await Message.findById(req.body.messageId).populate({ path: 'sender', select: '_id' }).exec()
+    if (!(isSender.sender._id.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You are not the sender of this message.' })
+    console.log(isSender)
+    const result = await Message.findByIdAndUpdate(req.body.messageId, {
+      $set: {
+        body: 'This message has been deleted',
+        type: 'Deleted'
+      }
+    }, {
+      returnDocument: 'after'
+    })
+      .exec()
+      .then((response) => {
+        res.status(200).json({ deleted: 'The message has been deleted.', response })
+      })
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
 })
 
 router.post('/set_group_image', authenticateToken, async (req, res) => {
