@@ -111,6 +111,7 @@ const socketServer = (httpServer) => {
             type: request.message.type,
             createdAt: request.message.createdAt,
             sender: sender,
+            reply: request.reply
           }
         }
 
