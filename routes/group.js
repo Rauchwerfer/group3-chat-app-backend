@@ -274,8 +274,7 @@ router.delete('/delete_message', authenticateToken, async (req, res) => {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     const isSender = await Message.findById(req.body.messageId).populate({ path: 'sender', select: '_id' }).exec()
     if (!(isSender.sender._id.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You are not the sender of this message.' })
-    console.log(isSender)
-    const result = await Message.findByIdAndUpdate(req.body.messageId, {
+    await Message.findByIdAndUpdate(req.body.messageId, {
       $set: {
         body: 'This message has been deleted',
         type: 'Deleted'
