@@ -21,13 +21,11 @@ const messageSchema = new mongoose.Schema({
     ref: 'User',
     index: true
   },
-  // Who has seen the message WIP
-  seen: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    }
-  ]
+  reply: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+    index: true
+  }
 }, { timestamps: true })
 
 const Message = mongoose.model('Message', messageSchema)
