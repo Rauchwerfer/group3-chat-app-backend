@@ -44,7 +44,7 @@ router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
     Group.findOne({ _id: req.params.groupId })
       .populate('participants moderators creator', '_id username status image')
       .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
-      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'reply', select: '_id body' }, populate: { path: 'sender', select: '_id username' } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'reply', select: '_id body', populate: { path: 'sender', select: '_id username' } } })
       .limit(1)
       .exec()
       .then(result => {
@@ -71,7 +71,6 @@ router.get('/get_more_messages/:groupId', authenticateToken, async (req, res) =>
       .select('messages')
       .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: req.query.skip, limit: 20 }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
       .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: req.query.skip, limit: 20 }, populate: { path: 'reply', select: '_id body', populate: { path: 'sender', select: '_id username' } } })
-
       .limit(1)
       .exec()
       .then(result => {
@@ -93,7 +92,7 @@ router.post('/visit', authenticateToken, async (req, res) => {
   if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
   const isParticipant = await Group.findById(req.body.currentGroupId).select('participants').exec();
   if (!isParticipant?.participants.includes(req.body.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
-  LastVisit.findOne({ user: req.body.currentUserId })
+  LastVisit.findOne({ user: req.body.currentUserId, group: req.body.currentGroupId })
     .exec()
     .then((result) => {
       if (result) {
@@ -127,6 +126,17 @@ router.post('/visit', authenticateToken, async (req, res) => {
       console.log(error)
       return res.sendStatus(500)
     })
+})
+
+router.get('/get_visits/:currentGroupId/:currentUserId', authenticateToken, async (req, res) => {
+  console.log(req.params.currentUserId)
+  if (!authorizeClient(req.params.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+  LastVisit.find({ group: req.params.currentGroupId })
+  .populate({path: 'user', select: '_id username status image', populate: {path: 'image', select: '_id imageBuffer imageType'}})
+  .exec()
+  .then((result) => {
+    res.status(200).json(result);
+  })
 })
 
 // Create a message used for group messaging as well.
@@ -272,12 +282,16 @@ router.post('/create_group', authenticateToken, async (req, res) => {
 router.delete('/delete_message', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
-    const isSender = await Message.findById(req.body.messageId).populate({ path: 'sender', select: '_id' }).exec()
+    const isSender = await Message.findById(req.body.messageId).populate({ path: 'sender', select: '_id images' }).exec()
     if (!(isSender.sender._id.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You are not the sender of this message.' })
+    if (isSender.images.length > 0) {
+      await Image.deleteOne({ _id: { $in: isSender.images } }).exec()
+    }
     await Message.findByIdAndUpdate(req.body.messageId, {
       $set: {
         body: 'This message has been deleted',
-        type: 'Deleted'
+        type: 'Deleted',
+        images: []
       }
     }, {
       returnDocument: 'after'
@@ -298,7 +312,6 @@ router.post('/set_group_image', authenticateToken, async (req, res) => {
     const isModerator = await Group.findById(req.body.currentGroupId).select('moderators').exec();
     if (!isModerator.moderators.includes(req.body.currentUserId)) return res.status(401).json({ permissions: 'You do not have moderator status in this group.' })
     const checkIfImageExists = await Group.findById(req.body.currentGroupId, 'image').exec()
-    console.log(checkIfImageExists)
     if (checkIfImageExists != null) {
       const image = await Image.findById(checkIfImageExists.image).exec()
       if (image !== null) {
