@@ -106,17 +106,36 @@ const socketServer = (httpServer) => {
           groupId: request.group,
           response: {
             _id: request.message._id,
-            recipientId: request.recipient,
             body: request.message.body,
             type: request.message.type,
             createdAt: request.message.createdAt,
             sender: sender,
-            reply: request.reply
+            reply: request.reply,
+            images: request.images
           }
         }
-
-        socket.to(request.recipient).emit("private-group-message", response)
         io.to(request.group).emit('private-group-message-sended', response)
+      } catch (err) {
+        console.log(err)
+      }
+    })
+
+    socket.on("delete-group-message", async (request) => {
+      try {
+        const sender = await User.findById(request.sender).select('image username _id status').exec()
+        const response = {
+          groupId: request.group,
+          response: {
+            _id: request.message._id,
+            body: request.message.body,
+            type: request.message.type,
+            createdAt: request.message.createdAt,
+            sender: sender,
+            reply: request.reply,
+            images: request.message.images
+          }
+        }
+        io.to(request.group).emit('group-message-deleted', response)
       } catch (err) {
         console.log(err)
       }
