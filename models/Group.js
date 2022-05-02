@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const messageSchema = new mongoose.Schema({
   body: {
     type: String,
-    required: true
+    default: ''
   },
   type: {
     type: String,
@@ -87,13 +87,6 @@ const groupSchema = new mongoose.Schema({
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Message',
-      index: true
-    }
-  ],
-  lastVisited: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'LastVisit',
       index: true
     }
   ]
