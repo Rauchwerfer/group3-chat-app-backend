@@ -40,11 +40,11 @@ router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
     if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     const isParticipant = await Group.findById(req.params.groupId).select('participants').exec();
     if (!isParticipant?.participants.includes(req.query.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
-    const visit = await LastVisit.findOne({ user: req.query.currentUserId }).exec()
+    const visit = await LastVisit.findOne({ user: req.query.currentUserId, group: req.params.groupId }).exec()
     Group.findOne({ _id: req.params.groupId })
       .populate('participants moderators creator', '_id username status image')
-      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
-      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0, limit: 20 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'reply', select: '_id body', populate: { path: 'sender', select: '_id username' } } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0}, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0}, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'reply', select: '_id body', populate: { path: 'sender', select: '_id username' } } })
       .limit(1)
       .exec()
       .then(result => {
@@ -103,7 +103,7 @@ router.post('/visit', authenticateToken, async (req, res) => {
               message: "Last time active updated",
               group: result._id,
               user: req.body.currentUserId,
-              lastActiveAt: new Date()
+              lastActiveAt: result.lastActiveAt
             })
           })
       } else {
