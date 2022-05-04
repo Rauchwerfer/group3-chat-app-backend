@@ -40,11 +40,14 @@ router.get('/get_messages/:groupId', authenticateToken, async (req, res) => {
     if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     const isParticipant = await Group.findById(req.params.groupId).select('participants').exec();
     if (!isParticipant?.participants.includes(req.query.currentUserId)) return res.status(401).json({ permissions: 'You are not a participant of this group.' })
-    const visit = await LastVisit.findOne({ user: req.query.currentUserId, group: req.params.groupId }).exec()
+    let visit = await LastVisit.findOne({ user: req.query.currentUserId, group: req.params.groupId }).exec()
+    if (visit === null) {
+      visit = { lastActiveAt: new Date() }
+    }
     Group.findOne({ _id: req.params.groupId })
       .populate('participants moderators creator', '_id username status image')
-      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0}, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
-      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0}, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'reply', select: '_id body', populate: { path: 'sender', select: '_id username' } } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'sender images', select: '_id username status image imageBuffer imageType' } })
+      .populate({ path: 'messages', options: { sort: { createdAt: -1 }, skip: 0 }, match: { 'createdAt': { $gt: visit.lastActiveAt } }, populate: { path: 'reply', select: '_id body', populate: { path: 'sender', select: '_id username' } } })
       .limit(1)
       .exec()
       .then(result => {
@@ -132,11 +135,11 @@ router.get('/get_visits/:currentGroupId/:currentUserId', authenticateToken, asyn
   console.log(req.params.currentUserId)
   if (!authorizeClient(req.params.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
   LastVisit.find({ group: req.params.currentGroupId })
-  .populate({path: 'user', select: '_id username status image', populate: {path: 'image', select: '_id imageBuffer imageType'}})
-  .exec()
-  .then((result) => {
-    res.status(200).json(result);
-  })
+    .populate({ path: 'user', select: '_id username status image', populate: { path: 'image', select: '_id imageBuffer imageType' } })
+    .exec()
+    .then((result) => {
+      res.status(200).json(result);
+    })
 })
 
 // Create a message used for group messaging as well.
@@ -259,7 +262,7 @@ router.post('/create_group', authenticateToken, async (req, res) => {
     .then((result) => {
       // This goes through all the participants and adds them to the group on the user side as well.
       req.body.participants.map(user => addUserToGroup(user, result._id))
-      if (req.body.image !== null) {
+      if (req.body?.image !== undefined) {
         addImageToGroup(req, result._id);
       }
       res.status(200).json({
