@@ -45,11 +45,11 @@ const socketServer = (httpServer) => {
 
     const socketUserContacts = await User.findById(socketUserId).select('contacts groups').exec()
 
-    let socketContacts = [...socketUserContacts.contacts, ...socketUserContacts.groups]
+    let socketContacts = [...socketUserContacts.groups]
     // This .map function turns new objectids to strings so we can use them as room names!
     const stringContacts = socketContacts.map(x => x.toHexString());
     socket.join(stringContacts)
-
+    socket.join(socketUserId)
     // Needs for testing
     /* const arr = Array.from(io.sockets.adapter.rooms)
     const filtered = arr.filter(room => !room[1].has(room[0]))
@@ -61,7 +61,8 @@ const socketServer = (httpServer) => {
     // Request: dialogue(dialogue._id) recipient(user._id), sender(user._id), body ('String'), type ('String', ...)
     socket.on("send-private-message", async (request) => {
       try {
-        //console.log(`Dialogue: ${request.dialogue}, recipient: ${request.recipient}, body: ${request.body}, sender: ${request.sender}, type: ${request.type}`)      
+        //console.log(`Dialogue: ${request.dialogue}, recipient: ${request.recipient}, body: ${request.body}, sender: ${request.sender}, type: ${request.type}`)
+        console.log(request)      
         const result = await Dialogue.findByIdAndUpdate(request.dialogue,
           {
             $push: {
@@ -91,9 +92,10 @@ const socketServer = (httpServer) => {
             messageId: sentMessage._id
           }
         }
+        console.log(response)
 
-        //socket.to(request.sender).emit("private-message", response)
-        io.to(request.recipient).emit("private-message-sended", response)
+        socket.to(request.recipient).emit("private-message", response)
+        io.to(request.sender).emit("private-message-sended", response)
       } catch (err) {
         console.log(err)
       }
