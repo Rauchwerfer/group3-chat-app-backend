@@ -51,7 +51,7 @@ router.post('/set_username', authenticateToken, async (req, res) => {
   }
 })
 
-router.post('/set_email', authenticateToken, async (req, res) =>{
+router.post('/set_email', authenticateToken, async (req, res) => {
   try {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
 
@@ -62,22 +62,22 @@ router.post('/set_email', authenticateToken, async (req, res) =>{
     })
     const confirmationLink = `https://api-group3-chat-app.herokuapp.com/auth/confirmation/${req.body.currentUserId}/${confirmationToken}`
 
-    const result = await User.findByIdAndUpdate(req.body.currentUserId,{ 
-      $set: { 
+    const result = await User.findByIdAndUpdate(req.body.currentUserId, {
+      $set: {
         unconfirmedEmail: req.body.newEmail,
         confirmationToken: confirmationToken,
         confirmationSentAt: Date.now()
-      } 
+      }
     }, {
       returnDocument: 'after'
     }).exec()
     console.log(result)
     const isSended = sendConfirmationMail(req.body.newEmail, 'eng', confirmationLink)
     if (isSended) {
-      return res.status(200).json({success: `Confirm your account via link sent to your email.`})
+      return res.status(200).json({ success: `Confirm your account via link sent to your email.` })
     } else {
       return res.sendStatus(204)
-    }      
+    }
 
   } catch (error) {
     console.log(error)
@@ -90,7 +90,7 @@ router.post('/set_password', authenticateToken, async (req, res) => {
     if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
 
     const user = await User.findById(req.body.currentUserId)
-    
+
     if (!await bcrypt.compare(req.body.currentPassword, user.password)) {
       return res.status(401).json({ error: "Invalid current password!" })
     }
@@ -98,7 +98,7 @@ router.post('/set_password', authenticateToken, async (req, res) => {
     const hashedPassword = await bcrypt.hash(req.body.newPassword, 10)
     user.password = hashedPassword
     const savedUser = await user.save()
-    return res.status(200).json({ success: "Password changed."})
+    return res.status(200).json({ success: "Password changed." })
   } catch (error) {
     console.log(error)
     return res.sendStatus(500)
@@ -107,17 +107,17 @@ router.post('/set_password', authenticateToken, async (req, res) => {
 
 router.post('/reset_password', async (req, res) => {
   try {
-    
 
-    const user = await User.findOne({ email: req.body.email})
-    
-    if (user.passwordResetCode != req.body.passwordResetCode) return res.status(401).json({ error: 'Invalid code!'})
+
+    const user = await User.findOne({ email: req.body.email })
+
+    if (user.passwordResetCode != req.body.passwordResetCode) return res.status(401).json({ error: 'Invalid code!' })
 
     const hashedPassword = await bcrypt.hash(req.body.newPassword, 10)
     user.password = hashedPassword
     user.passwordResetCode = ''
     const savedUser = await user.save()
-    return res.status(200).json({ success: "Password changed."})
+    return res.status(200).json({ success: "Password changed." })
   } catch (error) {
     console.log(error)
     return res.sendStatus(500)
@@ -133,9 +133,9 @@ router.post('/set_image', authenticateToken, async (req, res) => {
       const image = await Image.findById(checkIfImageExists.image).exec()
       if (image != null) {
         image.imageType = req.body.imageType,
-        image.imageBuffer = req.body.imageBuffer
+          image.imageBuffer = req.body.imageBuffer
         const savedImage = await image.save()
-        return res.status(200).json({ success: "Image changed."})
+        return res.status(200).json({ success: "Image changed." })
       } else {
         return res.sendStatus(304)
       }
@@ -152,9 +152,9 @@ router.post('/set_image', authenticateToken, async (req, res) => {
       }, {
         returnDocument: 'after'
       }).exec()
-  
+
       if (result && result.image) {
-        return res.status(200).json({ success: "Image changed."})
+        return res.status(200).json({ success: "Image changed." })
       } else {
         return res.sendStatus(500)
       }
@@ -185,7 +185,7 @@ router.delete('/delete_image', authenticateToken, async (req, res) => {
       returnDocument: 'after'
     }).exec()
 
-    return res.status(200).json({ success: "Image Deleted!"})
+    return res.status(200).json({ success: "Image Deleted!" })
   } catch (error) {
     console.log(error)
     return res.sendStatus(500)
@@ -222,7 +222,7 @@ router.delete('/delete_account', authenticateToken, async (req, res) => {
     userToDelete.confirmationToken = ''
     userToDelete.passwordResetToken = ''
     const deletedUser = await userToDelete.save()
-    return res.status(200).json({ success: "Account successfully deleted!"})
+    return res.status(200).json({ success: "Account successfully deleted!" })
 
   } catch (error) {
     console.log(error)
@@ -255,7 +255,8 @@ router.get('/get_user/:currentUserId', authenticateToken, async (req, res) => {
     User.findOne({ _id: req.params.currentUserId })
       .select('_id username email status image')
       .populate('contacts', '_id username status image')
-      .populate({ path: 'groups', select: '_id title image', populate: { path: 'image', select: 'imageBuffer imageType'}})
+      .populate({ path: 'groups', select: '_id title image', populate: { path: 'image', select: 'imageBuffer imageType' } })
+      .populate({ path: 'groups', select: '_id title image messages', populate: { path: 'messages', options: { sort: { createdAt: -1 }, limit: 1 }, populate: { path: 'sender', select: '_id username' } } })
       .exec()
       .then(result => {
         res.status(200).json(result)
