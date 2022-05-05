@@ -251,7 +251,6 @@ router.post('/create_group', authenticateToken, async (req, res) => {
   const group = new Group({
     _id: mongoose.Types.ObjectId(),
     title: req.body.title,
-    image: req.body.image,
     participants: req.body.participants,
     creator: req.body.currentUserId,
     moderators: req.body.moderators,
@@ -262,7 +261,7 @@ router.post('/create_group', authenticateToken, async (req, res) => {
     .then((result) => {
       // This goes through all the participants and adds them to the group on the user side as well.
       req.body.participants.map(user => addUserToGroup(user, result._id))
-      if (req.body?.image !== undefined) {
+      if (req.body?.imageBuffer !== undefined) {
         addImageToGroup(req, result._id);
       }
       res.status(200).json({
@@ -288,7 +287,7 @@ router.delete('/delete_message', authenticateToken, async (req, res) => {
     const isSender = await Message.findById(req.body.messageId).populate({ path: 'sender', select: '_id images' }).exec()
     if (!(isSender.sender._id.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You are not the sender of this message.' })
     if (isSender.images.length > 0) {
-      await Image.deleteOne({ _id: { $in: isSender.images } }).exec()
+      await Image.deleteMany({ _id: { $in: isSender.images } }).exec()
     }
     await Message.findByIdAndUpdate(req.body.messageId, {
       $set: {
@@ -302,6 +301,41 @@ router.delete('/delete_message', authenticateToken, async (req, res) => {
       .exec()
       .then((response) => {
         res.status(200).json({ deleted: 'The message has been deleted.', response })
+      })
+  } catch (error) {
+    console.log(error)
+    return res.sendStatus(500)
+  }
+})
+
+router.delete('/delete_group', authenticateToken, async (req, res) => {
+  try {
+    if (!authorizeClient(req.body.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
+    const isCreator = await Group.findById(req.body.currentGroupId).select('creator participants messages image').populate('messages').exec();
+    if (!(isCreator.creator.toHexString() === req.body.currentUserId)) return res.status(401).json({ permissions: 'You do not have creator status in this group.' })
+    if (isCreator.participants.length > 0) {
+      for (let u = 0; u < isCreator.participants.length; u++) {
+        removeUserFromGroup(isCreator.participants[u], req.body.currentGroupId)
+      }
+    }
+    let msgs = [];
+    let imgs = [];
+    if (isCreator.messages.length > 0) {
+      for (let i = 0; i < isCreator.messages.length; i++) {
+        msgs.push(isCreator.messages[i]._id)
+        for (let x = 0; x < isCreator.messages[i].images.length; x++) {
+          imgs.push(isCreator.messages[i].images[x])
+        }
+      }
+    }
+    await Message.deleteMany({ _id: { $in: msgs } }).exec()
+    await Image.deleteMany({ _id: { $in: imgs } }).exec()
+    await Image.deleteOne({ _id: isCreator.image }).exec()
+    await Group.deleteOne({ _id: req.body.currentGroupId })
+      .exec()
+      .then((response) => {
+        console.log(response)
+        res.status(200).json({ deleted: 'The group has been deleted.', response })
       })
   } catch (error) {
     console.log(error)
