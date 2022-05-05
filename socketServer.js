@@ -61,8 +61,7 @@ const socketServer = (httpServer) => {
     // Request: dialogue(dialogue._id) recipient(user._id), sender(user._id), body ('String'), type ('String', ...)
     socket.on("send-private-message", async (request) => {
       try {
-        //console.log(`Dialogue: ${request.dialogue}, recipient: ${request.recipient}, body: ${request.body}, sender: ${request.sender}, type: ${request.type}`)
-        console.log(request)      
+        //console.log(`Dialogue: ${request.dialogue}, recipient: ${request.recipient}, body: ${request.body}, sender: ${request.sender}, type: ${request.type}`)   
         const result = await Dialogue.findByIdAndUpdate(request.dialogue,
           {
             $push: {
@@ -141,6 +140,10 @@ const socketServer = (httpServer) => {
       } catch (err) {
         console.log(err)
       }
+    })
+
+    socket.on("join-new-group", (request) => {
+      socket.join(request.newGroupId)
     })
 
     socket.on("disconnect", () => {
