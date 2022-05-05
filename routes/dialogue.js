@@ -13,16 +13,19 @@ router.get('/', authenticateToken, async (req, res) => {
     console.log(req.query.currentUserId)
     if (!authorizeClient(req.query.currentUserId, req.headers['authorization'])) return res.sendStatus(401)
     const result = await User.findById(req.query.currentUserId, ['username', 'dialogues'])
-    //.populate('dialogues', ['_id', 'participants', 'messages'])
-    .populate({ 
-      path: 'dialogues',
-      populate: {
-        path: 'participants',
-        model: 'User',
-        select: ['_id', 'username', 'status']
-      } 
-    })   
-    .exec()
+      //.populate('dialogues', ['_id', 'participants', 'messages'])
+      .populate({
+        path: 'dialogues',
+        populate: {
+          path: 'participants',
+          model: 'User',
+          select: '_id username status image',
+          populate: {
+            path: 'image'
+          }
+        }
+      })
+      .exec()
     result.dialogues.forEach(dialogue => {
       if (dialogue.messages.length > 0) {
         dialogue.messages = dialogue.messages[dialogue.messages.length - 1]
@@ -43,9 +46,9 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
 
     if (req.query.dialogueId) {
       const dialogue = await Dialogue.findById(req.query.dialogueId)
-      .populate('messages.sender', ['username'/* , 'email' */])
-      .populate('participants', ['username'])
-      .exec()
+        .populate('messages.sender', ['username'/* , 'email' */])
+        .populate('participants', ['username'])
+        .exec()
 
       if (dialogue != null) {
         return res.status(200).json({
@@ -61,8 +64,8 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
         newDialogue.participants.push(req.query.currentUserId)
         const savedDialogue = await newDialogue.save()
         const dialogue = await Dialogue.findById(savedDialogue._id)
-        .populate('messages.sender', ['username'/* , 'email' */])
-        .populate('participants', ['username'])
+          .populate('messages.sender', ['username'/* , 'email' */])
+          .populate('participants', ['username'])
         //
         if (dialogue != null) {
           return res.status(200).json({
@@ -80,8 +83,8 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
       const checkIfDialogueExists = await Dialogue.findOne({
         "participants": { $all: [req.query.companionUserId, req.query.currentUserId] }
       })
-      .populate('messages.sender', ['username'/* , 'email' */])
-      .populate('participants', ['username'])
+        .populate('messages.sender', ['username'/* , 'email' */])
+        .populate('participants', ['username'])
       if (checkIfDialogueExists != null) {
         console.log('find')
         return res.status(200).json({
@@ -98,8 +101,8 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
         newDialogue.participants.push(req.query.currentUserId)
         const savedDialogue = await newDialogue.save()
         const dialogue = await Dialogue.findById(savedDialogue._id)
-        .populate('messages.sender', ['username'/* , 'email' */])
-        .populate('participants', ['username'])
+          .populate('messages.sender', ['username'/* , 'email' */])
+          .populate('participants', ['username'])
         //  
         if (dialogue != null) {
           return res.status(200).json({
@@ -110,7 +113,7 @@ router.get('/get_messages', authenticateToken, async (req, res) => {
         } else {
           return res.sendStatus(500)
         }
-        
+
       }
     }
 
@@ -129,7 +132,7 @@ router.delete('/delete_dialogue', authenticateToken, async (req, res) => {
       return res.status(200).json(result)
     } else {
       return res.sendStatus(304)
-    }      
+    }
   } catch (error) {
     console.log(error)
     return res.sendStatus(500)

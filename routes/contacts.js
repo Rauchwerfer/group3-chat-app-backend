@@ -7,7 +7,7 @@ const { authenticateToken, authorizeClient } = require('../AuthMiddleware')
 
 // Get contact list
 router.get('/', authenticateToken, async (req, res) => {
-  const user = await User.findById(res.locals.userId).populate('contacts', ['_id', 'username'])
+  const user = await User.findById(res.locals.userId).populate({ path: 'contacts', select: '_id username status image', populate: { path: 'image' } })
   return res.status(200).json(user.contacts)
 })
 
@@ -18,15 +18,15 @@ router.post('/add_contact', authenticateToken, async (req, res) => {
     const user = await User.findById(req.body.currentUserId);
     if (!user.contacts.includes(req.body.companionUserId)) {
       await user.updateOne({ $push: { contacts: req.body.companionUserId } });
-      res.status(201).json({ success: "Contact was added"});
+      res.status(201).json({ success: "Contact was added" });
     } else {
       await user.updateOne({ $pull: { contacts: req.body.companionUserId } });
-      res.status(200).json({ success: "Contact was deleted"});
+      res.status(200).json({ success: "Contact was deleted" });
     }
-  } catch(error) {
+  } catch (error) {
     console.log(error)
     return res.sendStatus(500)
-  } 
+  }
 })
 
 
@@ -37,10 +37,10 @@ router.get('/is_contact', authenticateToken, async (req, res) => {
     const user = await User.findById(req.query.currentUserId)
     const isContact = user.contacts.includes(req.query.companionUserId)
     res.status(200).json({ isContact: isContact })
-  } catch(error) {
+  } catch (error) {
     console.log(error)
     return res.sendStatus(500)
-  } 
+  }
 })
 
 module.exports = router
