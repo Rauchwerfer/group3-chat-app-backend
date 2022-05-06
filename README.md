@@ -13,5 +13,5 @@
 9. THEN DO nodemon server.js (FOR LIVE RELOADING WHEN UPDATING) OR npm start (ONLY UPDATES WHEN STARTED)
 10. BACKEND SHOULD BE RUNNING NOW
 
-# Frontend link
+# FRONTEND LINK
 https://github.com/HeliotropicAfterglow/group-3-chat-app-frontend
